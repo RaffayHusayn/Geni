@@ -39,11 +39,7 @@ begin
         goc.metadata,
         1 - (goc.embedding <=> query_embedding) as similarity
     from go_chunks goc
-    where
-        (filter->>'go_number'    is null or goc.metadata->>'go_number'    = filter->>'go_number')
-        and (filter->>'line'     is null or goc.metadata->>'line'         = filter->>'line')
-        and (filter->>'track'    is null or goc.metadata->>'track'        = filter->>'track')
-        and (filter->>'subdivision' is null or goc.metadata->>'subdivision' = filter->>'subdivision')
+    where (filter is null or goc.metadata @> filter)
     order by goc.embedding <=> query_embedding
     limit match_count;
 end;
