@@ -3,6 +3,8 @@ import json
 from extract import extract
 from parser import llmParser 
 from chunk import chunk
+from embed import embed
+from db import go_upsert 
 
 def process_document(filename: str):
     print(f"Starting pipeline for: {filename}")
@@ -27,9 +29,22 @@ def process_document(filename: str):
         print(f"chunking failed: {e} ")
         return
 
+    # --- Step 4: Embedding ---
+    try: 
+        embedded_chunks = embed(chunks)
+    except Exception as e:
+        print(f"embedding failed: {e}")
+        return
+        
+    # --- Step 4: db upsert ---
+    try: 
+        go_upsert(chunks)
+    except Exception as e:
+        print(f"supabase upsert failed: {e}")
+        return
+
     # --- Step 3: Output ---
-    print("\nFinal Structured Output")
-    print(json.dumps(chunks, indent=2))
+    print(f"\n Insertion of Go {chunks[0]["go_id"]} completed")
     
 if __name__ == "__main__":
     import sys
