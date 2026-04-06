@@ -1,10 +1,11 @@
-import sys
+import os
 import json
+import boto3
 from extract import extract
-from parser import llmParser 
+from parser import llmParser
 from chunk import chunk
 from embed import embed
-from db import go_upsert 
+from db import go_upsert, get_client
 
 def process_document(filename: str):
     print(f"Starting pipeline for: {filename}")
@@ -47,9 +48,17 @@ def process_document(filename: str):
     print(f"\n Insertion of Go {chunks[0]["go_id"]} completed")
     
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 2:
-        print("Usage: python main.py <filename.pdf>")
-        sys.exit(1)
-    pdf = sys.argv[1] 
-    process_document(pdf)
+    bucket = os.environ["S3_BUCKET"]
+    s3 = boto3.client("s3", region_name=os.environ["AWS_REGION"])
+
+    response = s3.list_objects_v2(Bucket=bucket)
+    s3_keys = [key for obj in response.get("Contents", []) if (key := obj.get("Key", "")).endswith(".pdf")]
+
+    result = get_client().table("go_chunks").select("go_id").execute()
+    ingested = {str(row["go_id"]) for row in result.data}
+
+    pending = [key for key in s3_keys if key.removesuffix(".pdf") not in ingested]
+
+    print(f"{len(pending)} of {len(s3_keys)} PDFs need ingestion.")
+    for key in pending:
+        process_document(key)
