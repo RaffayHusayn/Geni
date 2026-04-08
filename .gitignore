@@ -1,2 +1,8 @@
 .env
+dist/
+extras/
+GOs/
 system.md
+.DS_Store
+.vscode/
+**/__pycache__/
